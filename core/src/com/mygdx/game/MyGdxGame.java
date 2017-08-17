@@ -1,5 +1,6 @@
 package com.mygdx.game;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import com.badlogic.gdx.ApplicationAdapter;
@@ -12,6 +13,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.ui.List;
 import com.badlogic.gdx.utils.Array;
 
 public class MyGdxGame extends ApplicationAdapter {
@@ -23,19 +25,29 @@ public class MyGdxGame extends ApplicationAdapter {
 	Array<Block> blocks;
 	Rectangle left, right, up;
 	Ball ball;
+	Texture backgroundTexture;
 	Texture ballTexture;
 	boolean isPlaying;
 	Sound hitSound;
+	boolean gameWon;
+	Sprite backgroundSprite;
+	LevelCreator levelCreator;
+	String currentLevelName = "level2";
 
 	@Override
 	public void create() {
 		init();
 		isPlaying = false;
+		gameWon = false;
+
 	}
 
 	private void init() {
+		levelCreator = new LevelCreator();
 		batch = new SpriteBatch();
 		playerPlatformTexture = new Texture("paddleRed.png");
+		backgroundTexture = new Texture("background.jpg");
+		backgroundSprite = new Sprite(backgroundTexture);
 		playerPlatform = new PlayerPlatform(playerPlatformTexture);
 		initializeBlocks();
 		ballTexture = new Texture("ballBlue.png");
@@ -46,29 +58,15 @@ public class MyGdxGame extends ApplicationAdapter {
 	}
 
 	private void createBordersOfGame() {
-		left = new Rectangle(0, 0, 0, GAME_HEIGHT);
-		right = new Rectangle(GAME_WIDTH, 0, 0, GAME_HEIGHT);
-		up = new Rectangle(0, GAME_HEIGHT, GAME_WIDTH, 0);
+		left = new Rectangle(0-ball.getWidth(), 0, ball.getWidth(), GAME_HEIGHT);
+		right = new Rectangle(GAME_WIDTH, 0, ball.getWidth(), GAME_HEIGHT);
+		up = new Rectangle(0, GAME_HEIGHT, GAME_WIDTH, ball.getHeight());
 	}
 
 	private void initializeBlocks() {
-		String[] colors = new String[5];
-		colors[0] = "blue";
-		colors[1] = "green";
-		colors[2] = "purple";
-		colors[3] = "red";
-		colors[4] = "yellow";
-		
-		blocks = new Array<Block>();
-		for (int j = 0; j < 5; j++) {
-			for (int i = 0; i < 7; i++) {
-				Block block = new Block(new Texture("element_"+colors[j]+"_rectangle.png"));
-				block.setX(175 + i * block.getWidth());
-				block.setY(500 - j * block.getHeight());
-				blocks.add(block);
 
-			}
-		}
+		blocks = levelCreator.createBlocks(currentLevelName);
+
 	}
 
 	private void drawBlocks() {
@@ -77,13 +75,17 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 	}
 
+	private void renderBackground() {
+		backgroundSprite.draw(batch);
+	}
+
 	@Override
 	public void render() {
 		update();
 		Gdx.gl.glClearColor(0, 0, 0, 0);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		batch.begin();
-
+		renderBackground();
 		playerPlatform.draw(batch);
 		ball.draw(batch);
 		drawBlocks();
@@ -93,16 +95,23 @@ public class MyGdxGame extends ApplicationAdapter {
 
 	private void update() {
 		handleInput();
-		handleCollisions();
 		handleBallMovement();
+		handleCollisions();
 
 		checkIfLost();
+		checkIfWin();
 	}
 
 	private void checkIfLost() {
 		if (ball.getY() < 0)
 			Gdx.app.exit();
-		
+
+	}
+
+	private void checkIfWin() {
+		if (gameWon) {
+			Gdx.app.exit();
+		}
 	}
 
 	private void handleCollisions() {
@@ -123,17 +132,43 @@ public class MyGdxGame extends ApplicationAdapter {
 
 	}
 
-	private void handleBlockBallCollisions() {
-		Iterator<Block> it = blocks.iterator();
+	private Rectangle getRectangleCollidingWithBall(Iterator<Block> it) {
+		ArrayList<Block> list = new ArrayList<Block>(2);
 		while (it.hasNext()) {
 			Block block = it.next();
 			if (block.getBoundingRectangle().overlaps(ball.getBoundingRectangle())) {
 				it.remove();
-				handleSingleBallBlockCollision(block);
-				hitSound.play(1.0f);
-				break; // break to not allow breaking more than one block at a
-						// time
+				ball.setVelocity(ball.getVelocity()+5);
+				list.add(block);
 			}
+		}
+		if (list.size() > 1) {
+			Rectangle rectangle = new Rectangle(list.get(0).getBoundingRectangle());
+			rectangle = rectangle.merge(list.get(1).getBoundingRectangle());
+			return rectangle;
+
+		} else if (list.size() > 0) {
+			return list.get(0).getBoundingRectangle();
+		}
+		return null;
+	}
+
+	private void handleBlockBallCollisions() {
+		Iterator<Block> it = blocks.iterator();
+		if (!it.hasNext()) {
+			gameWon = true;
+
+		} /*
+			 * while (it.hasNext()) { Block block = it.next(); if
+			 * (block.getBoundingRectangle().overlaps(ball.getBoundingRectangle(
+			 * ))) { it.remove(); handleSingleBallBlockCollision(block);
+			 * hitSound.play(1.0f); break; // break to not allow breaking more
+			 * than one block at a // time } }
+			 */
+		Rectangle rectangle = getRectangleCollidingWithBall(it);
+		if (rectangle!=null) {
+		handleSingleBallBlockCollision(rectangle);
+		hitSound.play(1.0f);
 		}
 
 	}
@@ -168,8 +203,8 @@ public class MyGdxGame extends ApplicationAdapter {
 
 	}
 
-	private void handleSingleBallBlockCollision(Block block) {
-		Rectangle blockRect = block.getBoundingRectangle();
+	private void handleSingleBallBlockCollision(Rectangle blockRect) {
+
 		Rectangle ballRect = ball.getBoundingRectangle();
 		Rectangle intersection = new Rectangle();
 		Intersector.intersectRectangles(ballRect, blockRect, intersection);
@@ -189,22 +224,23 @@ public class MyGdxGame extends ApplicationAdapter {
 		if ((upCollision || downCollision) && !leftCollision && !rightCollision) {
 			ball.getVector().y *= -1;
 		}
-		if (leftDownCorner || leftUpperCorner    ) {
-			if (Math.abs(ballRect.x+ballRect.width-intersection.x)>Math.abs(ballRect.y+ballRect.height-intersection.y))
-				ball.getVector().y *=-1;
+		if (leftDownCorner || leftUpperCorner) {
+
+			if (Math.abs(ballRect.x + ballRect.width - intersection.x) >= Math
+					.abs(ballRect.y + ballRect.height - intersection.y))
+				ball.getVector().y *= -1;
 			else
-				ball.getVector().x*=-1;
-			
-			
+				ball.getVector().x *= -1;
+
 		}
 		if (rightDownCorner || rightUpperCorner) {
-			if (Math.abs(ballRect.x+ballRect.width-intersection.x)<Math.abs(ballRect.y+ballRect.height-intersection.y))
-				ball.getVector().y *=-1;
+			if (Math.abs(ballRect.x + ballRect.width - intersection.x) <= Math
+					.abs(ballRect.y + ballRect.height - intersection.y))
+				ball.getVector().y *= -1;
 			else
-				ball.getVector().x*=-1;
-		}
-	
+				ball.getVector().x *= -1;
 
+		}
 	}
 
 	@Override
@@ -214,6 +250,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		ballTexture.dispose();
 		disposeBlocks();
 		hitSound.dispose();
+		backgroundTexture.dispose();
 
 	}
 
