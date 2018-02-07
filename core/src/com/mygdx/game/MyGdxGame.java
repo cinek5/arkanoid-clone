@@ -9,6 +9,7 @@ import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Intersector;
@@ -32,7 +33,9 @@ public class MyGdxGame extends ApplicationAdapter {
 	boolean gameWon;
 	Sprite backgroundSprite;
 	LevelCreator levelCreator;
-	String currentLevelName = "level2";
+	String currentLevelName = "level1";
+	int gameScore;
+	BitmapFont font;
 
 	@Override
 	public void create() {
@@ -41,8 +44,13 @@ public class MyGdxGame extends ApplicationAdapter {
 		gameWon = false;
 
 	}
+	private void displayGameScore() {
+		font.draw(batch, "Score: "+ Integer.toString(gameScore), 10, GAME_HEIGHT - 10);
+	}
 
 	private void init() {
+		font = new BitmapFont();
+		font.getData().setScale(3);
 		levelCreator = new LevelCreator();
 		batch = new SpriteBatch();
 		playerPlatformTexture = new Texture("paddleRed.png");
@@ -58,9 +66,9 @@ public class MyGdxGame extends ApplicationAdapter {
 	}
 
 	private void createBordersOfGame() {
-		left = new Rectangle(0-ball.getWidth(), 0, ball.getWidth(), GAME_HEIGHT);
-		right = new Rectangle(GAME_WIDTH, 0, ball.getWidth(), GAME_HEIGHT);
-		up = new Rectangle(0, GAME_HEIGHT, GAME_WIDTH, ball.getHeight());
+		left = new Rectangle(0, 0, 0, GAME_HEIGHT);
+		right = new Rectangle(GAME_WIDTH, 0, 0, GAME_HEIGHT);
+		up = new Rectangle(0, GAME_HEIGHT, GAME_WIDTH, 0);
 	}
 
 	private void initializeBlocks() {
@@ -78,6 +86,15 @@ public class MyGdxGame extends ApplicationAdapter {
 	private void renderBackground() {
 		backgroundSprite.draw(batch);
 	}
+	private void resetGame() {
+		isPlaying = false;
+		ball.setX(ball.STARTING_X);
+		ball.setY(Ball.STARTING_Y);
+	    initializeBlocks();
+	    ball.setVelocity(Ball.STARTING_VELOCITY);
+	    gameScore=0;
+
+	}
 
 	@Override
 	public void render() {
@@ -89,6 +106,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		playerPlatform.draw(batch);
 		ball.draw(batch);
 		drawBlocks();
+		displayGameScore();
 
 		batch.end();
 	}
@@ -104,7 +122,7 @@ public class MyGdxGame extends ApplicationAdapter {
 
 	private void checkIfLost() {
 		if (ball.getY() < 0)
-			Gdx.app.exit();
+			resetGame();
 
 	}
 
@@ -138,6 +156,7 @@ public class MyGdxGame extends ApplicationAdapter {
 			Block block = it.next();
 			if (block.getBoundingRectangle().overlaps(ball.getBoundingRectangle())) {
 				it.remove();
+				gameScore++;
 				ball.setVelocity(ball.getVelocity()+5);
 				list.add(block);
 			}
@@ -185,14 +204,14 @@ public class MyGdxGame extends ApplicationAdapter {
 
 	private void handleInput() {
 		if (Gdx.input.isKeyPressed(Keys.LEFT)) {
-			playerPlatform.setX(playerPlatform.getX() - 400 * Gdx.graphics.getDeltaTime());
+			playerPlatform.setX(playerPlatform.getX() - 450 * Gdx.graphics.getDeltaTime());
 			if (playerPlatform.isOutOfWindow()) {
 				playerPlatform.setX(0);
 			}
 
 		}
 		if (Gdx.input.isKeyPressed(Keys.RIGHT)) {
-			playerPlatform.setX(playerPlatform.getX() + 400 * Gdx.graphics.getDeltaTime());
+			playerPlatform.setX(playerPlatform.getX() + 450 * Gdx.graphics.getDeltaTime());
 			if (playerPlatform.isOutOfWindow()) {
 				playerPlatform.setX(GAME_WIDTH - playerPlatform.getWidth());
 			}
