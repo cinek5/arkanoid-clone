@@ -4,10 +4,12 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Vector2;
 
+import scenes.GamePlayScreen;
+
 public class Ball extends Sprite {
 
 	public static final int STARTING_VELOCITY = 400;
-	public final float STARTING_X = MyGdxGame.GAME_WIDTH / 2 - this.getWidth() / 2;
+	public final float STARTING_X = GamePlayScreen.GAME_WIDTH / 2 - this.getWidth() / 2;
 	public static final float STARTING_Y = 24;
 	private Vector2 vector;
 	private float velocity;

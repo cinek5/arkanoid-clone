@@ -6,19 +6,21 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
+import scenes.GamePlayScreen;
+
 public class PlayerPlatform  extends Sprite{
      
 
 	
     public PlayerPlatform(Texture playerPlatformTexture) {
     	super(playerPlatformTexture);
-    	this.setX(MyGdxGame.GAME_WIDTH/2 - this.getWidth()/2);
+    	this.setX(GamePlayScreen.GAME_WIDTH/2 - this.getWidth()/2);
     	this.setY(0);
     	
     }
     
    public boolean isOutOfWindow() {
-	return (this.getX()<0 || this.getX()+this.getWidth()>MyGdxGame.GAME_WIDTH);
+	return (this.getX()<0 || this.getX()+this.getWidth()>GamePlayScreen.GAME_WIDTH);
 	   
    }
    
