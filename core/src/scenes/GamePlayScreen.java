@@ -2,6 +2,8 @@ package scenes;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
@@ -17,6 +19,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.mygdx.game.Ball;
 import com.mygdx.game.Block;
+import com.mygdx.game.FallingBonus;
 import com.mygdx.game.LevelCreator;
 import com.mygdx.game.MyGdxGame;
 import com.mygdx.game.PlayerPlatform;
@@ -25,6 +28,7 @@ public class GamePlayScreen implements Screen {
 	MyGdxGame game;
 	public static final int GAME_WIDTH = 800;
 	public static final int GAME_HEIGHT = 600;
+	private static final float BONUS_PROBABILITY = 0.4f;
 	PlayerPlatform playerPlatform;
 	Texture playerPlatformTexture;
 	Array<Block> blocks;
@@ -40,17 +44,34 @@ public class GamePlayScreen implements Screen {
 	String currentLevelName = "level1";
 	int gameScore;
 	BitmapFont font;
+	List<FallingBonus> bonuses;
 
 	public GamePlayScreen(MyGdxGame game) {
 		this.game = game;
 		init();
 		isPlaying = false;
 		gameWon = false;
+		bonuses = new ArrayList<FallingBonus>(3);
+
+	}
+
+	private void createBonus(float x, float y) {
+		Random random = new Random();
+		float probability = random.nextFloat();
+		if (probability < BONUS_PROBABILITY) {
+			bonuses.add(FallingBonus.createNewFallingBonus(x, y));
+		}
 
 	}
 
 	private void displayGameScore() {
 		font.draw(game.getBatch(), "Score: " + Integer.toString(gameScore), 10, GAME_HEIGHT - 10);
+	}
+
+	private void drawBonuses() {
+		for (FallingBonus bonus : bonuses) {
+			bonus.draw(game.getBatch());
+		}
 	}
 
 	private void init() {
@@ -117,9 +138,35 @@ public class GamePlayScreen implements Screen {
 		playerPlatform.draw(game.getBatch());
 		ball.draw(game.getBatch());
 		drawBlocks();
+		drawBonuses();
 		displayGameScore();
 
 		game.getBatch().end();
+
+	}
+
+	private void handleBonuses() {
+		moveBonuses();
+
+		removeFallenBonuses();
+	}
+
+	private void removeFallenBonuses() {
+		Iterator<FallingBonus> it = bonuses.iterator();
+		while (it.hasNext()) {
+			FallingBonus bonus = it.next();
+			if (bonus.getY() > GamePlayScreen.GAME_WIDTH) {
+                it.remove();
+                bonus.dispose();
+			}
+		}
+
+	}
+
+	private void moveBonuses() {
+		for (FallingBonus bonus : bonuses) {
+			bonus.fallDown();
+		}
 
 	}
 
@@ -127,7 +174,7 @@ public class GamePlayScreen implements Screen {
 		handleInput();
 		handleBallMovement();
 		handleCollisions();
-
+		handleBonuses();
 		checkIfLost();
 		checkIfWin();
 	}
@@ -145,6 +192,12 @@ public class GamePlayScreen implements Screen {
 	}
 
 	private void handleCollisions() {
+		handleBallBordersCollisions();
+		handleBlockBallCollisions();
+
+	}
+
+	private void handleBallBordersCollisions() {
 		if (ball.getBoundingRectangle().overlaps(playerPlatform.getBoundingRectangle())) {
 			playerPlatform.bounceBall(ball);
 			hitSound.play(1.0f);
@@ -156,8 +209,6 @@ public class GamePlayScreen implements Screen {
 			ball.getVector().y *= -1;
 			hitSound.play(1.0f);
 		}
-		handleBlockBallCollisions();
-
 	}
 
 	private Rectangle getRectangleCollidingWithBall(Iterator<Block> it) {
@@ -191,6 +242,7 @@ public class GamePlayScreen implements Screen {
 		Rectangle rectangle = getRectangleCollidingWithBall(it);
 		if (rectangle != null) {
 			handleSingleBallBlockCollision(rectangle);
+			createBonus(rectangle.getX(), rectangle.getY());
 			hitSound.play(1.0f);
 		}
 
