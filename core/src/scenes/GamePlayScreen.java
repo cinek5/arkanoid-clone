@@ -22,6 +22,7 @@ import com.mygdx.game.Block;
 import com.mygdx.game.FallingBonus;
 import com.mygdx.game.LevelCreator;
 import com.mygdx.game.MyGdxGame;
+import com.mygdx.game.PaddleState;
 import com.mygdx.game.PlayerPlatform;
 
 public class GamePlayScreen implements Screen {
@@ -30,7 +31,6 @@ public class GamePlayScreen implements Screen {
 	public static final int GAME_HEIGHT = 600;
 	private static final float BONUS_PROBABILITY = 0.4f;
 	PlayerPlatform playerPlatform;
-	Texture playerPlatformTexture;
 	Array<Block> blocks;
 	Rectangle left, right, up;
 	Ball ball;
@@ -41,7 +41,7 @@ public class GamePlayScreen implements Screen {
 	boolean gameWon;
 	Sprite backgroundSprite;
 	LevelCreator levelCreator;
-	String currentLevelName = "level1";
+	String currentLevelName = "level2";
 	int gameScore;
 	BitmapFont font;
 	List<FallingBonus> bonuses;
@@ -78,10 +78,9 @@ public class GamePlayScreen implements Screen {
 		font = new BitmapFont();
 		font.getData().setScale(3);
 		levelCreator = new LevelCreator();
-		playerPlatformTexture = new Texture("paddleRed.png");
 		backgroundTexture = new Texture("background.jpg");
 		backgroundSprite = new Sprite(backgroundTexture);
-		playerPlatform = new PlayerPlatform(playerPlatformTexture);
+		playerPlatform = new PlayerPlatform();
 		initializeBlocks();
 		ballTexture = new Texture("ballBlue.png");
 		ball = new Ball(ballTexture);
@@ -113,6 +112,9 @@ public class GamePlayScreen implements Screen {
 		initializeBlocks();
 		ball.setVelocity(Ball.STARTING_VELOCITY);
 		gameScore = 0;
+		playerPlatform.changeState(PaddleState.NORMAL);
+		disposeBonuses();
+		bonuses.clear();
 
 	}
 
@@ -156,8 +158,8 @@ public class GamePlayScreen implements Screen {
 		while (it.hasNext()) {
 			FallingBonus bonus = it.next();
 			if (bonus.getY() > GamePlayScreen.GAME_WIDTH) {
-                it.remove();
-                bonus.dispose();
+				it.remove();
+				bonus.dispose();
 			}
 		}
 
@@ -194,21 +196,47 @@ public class GamePlayScreen implements Screen {
 	private void handleCollisions() {
 		handleBallBordersCollisions();
 		handleBlockBallCollisions();
+		handleBonusPaddleCollisions();
+	}
 
+	private void handleBonusPaddleCollisions() {
+		Rectangle paddleRect = playerPlatform.getBoundingRectangle();
+		Iterator<FallingBonus> it = bonuses.iterator();
+		while (it.hasNext()) {
+			FallingBonus bonus = it.next();
+			Rectangle bonusRect = bonus.getBoundingRectangle();
+			if (bonusRect.overlaps(paddleRect)) {
+				bonus.changePaddleState(playerPlatform);
+				it.remove();
+			    bonus.dispose();
+			}
+		}
 	}
 
 	private void handleBallBordersCollisions() {
 		if (ball.getBoundingRectangle().overlaps(playerPlatform.getBoundingRectangle())) {
 			playerPlatform.bounceBall(ball);
 			hitSound.play(1.0f);
-		} else if (ball.getBoundingRectangle().overlaps(left) || ball.getBoundingRectangle().overlaps(right)) {
+		} else if (ball.getBoundingRectangle().overlaps(left)) {
 			ball.getVector().x *= -1;
+			ball.setX(0);
+			hitSound.play(1.0f);
+
+		} else if (ball.getBoundingRectangle().overlaps(right)) {
+			ball.getVector().x *= -1;
+			ball.setX(GAME_WIDTH - ball.getWidth());
 			hitSound.play(1.0f);
 
 		} else if (ball.getBoundingRectangle().overlaps(up)) {
 			ball.getVector().y *= -1;
+			ball.setY(GAME_HEIGHT - ball.getHeight());
 			hitSound.play(1.0f);
 		}
+	}
+
+	private void moveBall() {
+		ball.translateX(ball.getVector().x * Gdx.graphics.getDeltaTime());
+		ball.translateY(ball.getVector().y * Gdx.graphics.getDeltaTime());
 	}
 
 	private Rectangle getRectangleCollidingWithBall(Iterator<Block> it) {
@@ -250,8 +278,7 @@ public class GamePlayScreen implements Screen {
 
 	private void handleBallMovement() {
 		if (isPlaying) {
-			ball.translateX(ball.getVector().x * Gdx.graphics.getDeltaTime());
-			ball.translateY(ball.getVector().y * Gdx.graphics.getDeltaTime());
+			moveBall();
 		} else {
 			ball.setX(playerPlatform.getX() + playerPlatform.getWidth() / 2 - ball.getWidth() / 2);
 		}
@@ -344,9 +371,10 @@ public class GamePlayScreen implements Screen {
 
 	@Override
 	public void dispose() {
-		playerPlatformTexture.dispose();
+		playerPlatform.dispose();
 		ballTexture.dispose();
 		disposeBlocks();
+		disposeBonuses();
 		hitSound.dispose();
 		backgroundTexture.dispose();
 
@@ -357,6 +385,11 @@ public class GamePlayScreen implements Screen {
 			b.getTexture().dispose();
 		}
 
+	}
+	private void disposeBonuses() {
+		for (FallingBonus b: bonuses) {
+			b.dispose();
+		}
 	}
 
 }

@@ -28,7 +28,6 @@ public class FallingBonus extends Sprite {
 		int randomIndex = random.nextInt(numberOfBonuses);
 		BonusType bonusType = BonusType.values()[randomIndex];
 		Texture bonusTexture = new Texture(bonusType.toString()+"_BONUS.png");
-		System.out.println(bonusType.toString()+"_BONUS.png");
 		return new FallingBonus(bonusTexture,x,y,bonusType);
 		
 	}
@@ -55,6 +54,19 @@ public class FallingBonus extends Sprite {
 	public void setBonusType(BonusType bonusType) {
 		this.bonusType = bonusType;
 	}
+	
+    public void changePaddleState(PlayerPlatform paddle) {
+    	 switch (bonusType) {
+    	 case WIDEN_PADDLE: {
+    		 paddle.changeState(PaddleState.WIDEN);
+    		 break;
+    	 }
+    	 case SHORTEN_PADDLE: {
+    		 paddle.changeState(PaddleState.SHORTEN);
+    		 break;
+    	 }
+    	 }
+    }
 
 
 
