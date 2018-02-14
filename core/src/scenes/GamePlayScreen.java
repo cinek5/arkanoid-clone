@@ -41,7 +41,7 @@ public class GamePlayScreen implements Screen {
 	boolean gameWon;
 	Sprite backgroundSprite;
 	LevelCreator levelCreator;
-	String currentLevelName = "level2";
+	String currentLevelName = "level1";
 	int gameScore;
 	BitmapFont font;
 	List<FallingBonus> bonuses;
@@ -90,9 +90,9 @@ public class GamePlayScreen implements Screen {
 	}
 
 	private void createBordersOfGame() {
-		left = new Rectangle(0, 0, 0, GAME_HEIGHT);
-		right = new Rectangle(GAME_WIDTH, 0, 0, GAME_HEIGHT);
-		up = new Rectangle(0, GAME_HEIGHT, GAME_WIDTH, 0);
+		left = new Rectangle(-1*ball.getWidth(),0 , ball.getWidth(), GAME_HEIGHT);
+		right = new Rectangle(GAME_WIDTH, 0, ball.getWidth(), GAME_HEIGHT);
+		up = new Rectangle(0, GAME_HEIGHT, GAME_WIDTH, ball.getHeight());
 	}
 
 	private void initializeBlocks() {
